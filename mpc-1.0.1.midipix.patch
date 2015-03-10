@@ -1,0 +1,43 @@
+diff -ru a/config.sub b/config.sub
+--- a/config.sub	2012-07-22 11:40:22.000000000 -0400
++++ b/config.sub	2015-02-26 03:00:54.521530972 -0500
+@@ -791,9 +791,8 @@
+ 	microblaze)
+ 		basic_machine=microblaze-xilinx
+ 		;;
+-	mingw32)
+-		basic_machine=i386-pc
+-		os=-mingw32
++	midipix)
++		os=-midipix
+ 		;;
+ 	mingw32ce)
+ 		basic_machine=arm-unknown
+@@ -1359,7 +1358,7 @@
+ 	      | -udi* | -eabi* | -lites* | -ieee* | -go32* | -aux* \
+ 	      | -chorusos* | -chorusrdb* | -cegcc* \
+ 	      | -cygwin* | -msys* | -pe* | -psos* | -moss* | -proelf* | -rtems* \
+-	      | -mingw32* | -linux-gnu* | -linux-android* \
++	      | -midipix* | -mingw32* | -linux-gnu* | -linux-android* \
+ 	      | -linux-newlib* | -linux-uclibc* \
+ 	      | -uxpv* | -beos* | -mpeix* | -udk* \
+ 	      | -interix* | -uwin* | -mks* | -rhapsody* | -darwin* | -opened* \
+diff -ru a/configure b/configure
+--- a/configure	2012-09-06 06:06:27.000000000 -0400
++++ b/configure	2015-03-10 19:12:26.580180368 -0400
+@@ -16378,3 +16378,15 @@
+ $as_echo "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
+ fi
+ 
++# a transitional workaround...
++case $host_os in
++		midipix*)
++			cp $ac_confdir/libtool.midipix libtool || exit 2
++
++			sed -i	-e 's/@cbb_host_os@/'$host'/g' \
++				-e 's/@cbb_build_alias@/'$build_alias'/g' \
++				-e 's/@cbb_build_os@/'$build_os'/g' \
++				-e 's/@cbb_build@/'$build'/g' libtool || exit 2
++			;;
++esac
++
