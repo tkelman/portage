@@ -1,0 +1,13 @@
+portage: the midipix porting bits for everything but the compiler
+
+porting applications and libraries to midipix can often be done with
+no changes to the code proper, and only minor changes to the build
+system, most notably with respect to libtool.
+
+for the sake of convenience and simplicity, each supported version of
+an upstream source tree has a patch named package-x.y.z.midipix.patch.
+
+for packages not using libtool, building for the midipix target should
+only require the above patch file. if the package does use libtool,
+however, then you should also copy libtool.midipix to the top
+directory of its source tree.
