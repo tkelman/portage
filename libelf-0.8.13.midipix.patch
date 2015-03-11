@@ -1,0 +1,61 @@
+diff -ru a/config.sub b/config.sub
+--- a/config.sub	2005-05-21 11:28:37.000000000 -0400
++++ b/config.sub	2015-02-26 03:13:29.701545522 -0500
+@@ -642,6 +642,9 @@
+ 		basic_machine=ns32k-utek
+ 		os=-sysv
+ 		;;
++	midipix)
++		os=-midipix
++		;;
+ 	mingw32)
+ 		basic_machine=i386-pc
+ 		os=-mingw32
+@@ -1161,7 +1164,7 @@
+ 	      | -udi* | -eabi* | -lites* | -ieee* | -go32* | -aux* \
+ 	      | -chorusos* | -chorusrdb* \
+ 	      | -cygwin* | -pe* | -psos* | -moss* | -proelf* | -rtems* \
+-	      | -mingw32* | -linux-gnu* | -linux-uclibc* | -uxpv* | -beos* | -mpeix* | -udk* \
++	      | -midipix* | -mingw32* | -linux-gnu* | -linux-uclibc* | -uxpv* | -beos* | -mpeix* | -udk* \
+ 	      | -interix* | -uwin* | -mks* | -rhapsody* | -darwin* | -opened* \
+ 	      | -openstep* | -oskit* | -conix* | -pw32* | -nonstopux* \
+ 	      | -storm-chaos* | -tops10* | -tenex* | -tops20* | -its* \
+diff -ru a/configure b/configure
+--- a/configure	2008-05-23 04:18:03.000000000 -0400
++++ b/configure	2015-03-10 20:32:16.332333640 -0400
+@@ -3445,6 +3445,16 @@
+ 	LINK_SHLIB='$(LD) -G -z text -h $(SONAME)'
+ 	INSTALL_SHLIB='$(INSTALL_PROGRAM)'
+ 	;;
++      *midipix*)
++        PICFLAGS='-fPIC -DPIC'
++        SHLIB_SFX='.so.$(VERSION)'
++        SHLINK_SFX='.so'
++        SONAME_SFX='.so.$(MAJOR)'
++        LINK_SHLIB='$(CC) -shared -Wl,-soname,$(SONAME) -mout-implib -moutput-def'
++        IMPLIB_NAME=libelf.`echo "so.$VERSION" | sed -E 's/[^\.]+$/lib.a/'`
++        INSTALL_SHLIB='cp $(IMPLIB_NAME) $(libdir)/libelf.lib.a; $(INSTALL_PROGRAM)'
++        DEPSHLIBS=''
++        ;;
+       *)
+ 	echo "configure: warning: shared libraries not supported for $host" 1>&2
+ 	mr_enable_shared=no
+@@ -3687,6 +3697,7 @@
+ s%@INSTALL_SHLIB@%$INSTALL_SHLIB%g
+ s%@DEPSHLIBS@%$DEPSHLIBS%g
+ s%@DO_SHLIB@%$DO_SHLIB%g
++s%@IMPLIB_NAME@%$IMPLIB_NAME%g
+ 
+ CEOF
+ EOF
+diff -ru a/lib/Makefile.in b/lib/Makefile.in
+--- a/lib/Makefile.in	2009-11-01 08:04:19.000000000 -0500
++++ b/lib/Makefile.in	2015-03-09 00:13:06.842232837 -0400
+@@ -49,6 +49,7 @@
+ SHLINK_SFX = @SHLINK_SFX@
+ SONAME_SFX = @SONAME_SFX@
+ LINK_SHLIB = @LINK_SHLIB@
++IMPLIB_NAME = @IMPLIB_NAME@
+ INSTALL_SHLIB = @INSTALL_SHLIB@
+ 
+ SHLIB = libelf$(SHLIB_SFX)
