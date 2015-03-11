@@ -12,3 +12,188 @@ diff -ru --new-file a/bfd/midipix.h b/bfd/midipix.h
 +#define PE_IMPLIB_SUFFIX	".lib.a"
 +
 +#endif
+diff -ru --new-file a/ld/configure b/ld/configure
+--- a/ld/configure	2014-07-03 01:37:48.000000000 -0400
++++ b/ld/configure	2015-03-11 18:20:47.712564107 -0400
+@@ -19773,3 +19773,19 @@
+ $as_echo "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
+ fi
+ 
++#PE custom import library support
++if [ -f peimplib.h ]; then
++	echo 'build directory is not clean (peimplib.h already exists)'
++	exit 2
++fi
++
++touch peimplib.h || exit 2
++
++case $target_os in
++	*midipix*)
++		cat >> peimplib.h << EOF
++
++/* midipix supersystem support */
++#include "midipix.h"
++EOF
++esac
+diff -ru --new-file a/ld/emultempl/pe.em b/ld/emultempl/pe.em
+--- a/ld/emultempl/pe.em	2014-07-03 01:37:48.000000000 -0400
++++ b/ld/emultempl/pe.em	2015-03-11 18:17:10.092557143 -0400
+@@ -35,6 +35,18 @@
+    only determine if the subsystem is console or windows in order to select
+    the correct entry point by default. */
+ 
++
++#include "peimplib.h"
++
++#ifndef PE_IMPLIB_SUFFIX
++#define PE_IMPLIB_SUFFIX	".dll.a"
++#endif
++
++#ifndef PE_DSO_SUFFIX
++#define PE_DSO_SUFFIX		".dll"
++#endif
++
++
+ #define TARGET_IS_${EMULATION_NAME}
+ 
+ /* Do this before including bfd.h, so we prototype the right functions.  */
+@@ -471,8 +483,8 @@
+                                        specifically set with --image-base\n"));
+   fprintf (file, _("  --disable-auto-image-base          Do not auto-choose image base. (default)\n"));
+   fprintf (file, _("  --dll-search-prefix=<string>       When linking dynamically to a dll without\n\
+-                                       an importlib, use <string><basename>.dll\n\
+-                                       in preference to lib<basename>.dll \n"));
++                                       an importlib, use <string><basename>"PE_DSO_SUFFIX"\n\
++                                       in preference to lib<basename>"PE_DSO_SUFFIX" \n"));
+   fprintf (file, _("  --enable-auto-import               Do sophisticated linking of _sym to\n\
+                                        __imp_sym for DATA references\n"));
+   fprintf (file, _("  --disable-auto-import              Do not auto-import DATA items from DLLs\n"));
+@@ -1698,7 +1710,7 @@
+ 		       extension, and use that for the remainder of the
+ 		       comparisons.  */
+ 		    pnt = strrchr (is3->the_bfd->filename, '.');
+-		    if (pnt != NULL && filename_cmp (pnt, ".dll") == 0)
++		    if (pnt != NULL && filename_cmp (pnt, PE_DSO_SUFFIX) == 0)
+ 		      break;
+ 		  }
+ 
+@@ -1733,7 +1745,7 @@
+ 	       then leave the filename alone.  */
+ 	    pnt = strrchr (is->the_bfd->filename, '.');
+ 
+-	    if (is_ms_arch && (filename_cmp (pnt, ".dll") == 0))
++	    if (is_ms_arch && (filename_cmp (pnt, PE_DSO_SUFFIX) == 0))
+ 	      {
+ 		int idata2 = 0, reloc_count=0;
+ 		asection *sec;
+@@ -2298,10 +2310,14 @@
+     }
+   libname_fmt [] =
+     {
++      /* optionally support ldso-specific import libraries */
++      #ifdef PE_DSOLIB_SUFFIX
++      { "lib%s"PE_DSOLIB_SUFFIX, FALSE },
++      #endif
+       /* Preferred explicit import library for dll's.  */
+-      { "lib%s.dll.a", FALSE },
++      { "lib%s"PE_IMPLIB_SUFFIX, FALSE },
+       /* Alternate explicit import library for dll's.  */
+-      { "%s.dll.a", FALSE },
++      { "%s"PE_IMPLIB_SUFFIX, FALSE },
+       /* "libfoo.a" could be either an import lib or a static lib.
+           For backwards compatibility, libfoo.a needs to precede
+           libfoo.dll and foo.dll in the search.  */
+@@ -2310,10 +2326,10 @@
+       { "%s.lib", FALSE },
+ #ifdef DLL_SUPPORT
+       /* Try "<prefix>foo.dll" (preferred dll name, if specified).  */
+-      {	"%s%s.dll", TRUE },
++      {	"%s%s"PE_DSO_SUFFIX, TRUE },
+ #endif
+       /* Try "libfoo.dll" (default preferred dll name).  */
+-      {	"lib%s.dll", FALSE },
++      {	"lib%s"PE_DSO_SUFFIX, FALSE },
+       /* Finally try 'native' dll name "foo.dll".  */
+       {  "%s.dll", FALSE },
+       /* Note: If adding more formats to this table, make sure to check to
+diff -ru --new-file a/ld/emultempl/pep.em b/ld/emultempl/pep.em
+--- a/ld/emultempl/pep.em	2014-07-03 01:37:48.000000000 -0400
++++ b/ld/emultempl/pep.em	2015-03-11 18:17:10.096557143 -0400
+@@ -42,6 +42,18 @@
+ /* For WINDOWS_XP64 and higher */
+ /* Based on pe.em, but modified for 64 bit support.  */
+ 
++
++#include "peimplib.h"
++
++#ifndef PE_IMPLIB_SUFFIX
++#define PE_IMPLIB_SUFFIX	".dll.a"
++#endif
++
++#ifndef PE_DSO_SUFFIX
++#define PE_DSO_SUFFIX		".dll"
++#endif
++
++
+ #define TARGET_IS_${EMULATION_NAME}
+ 
+ #define COFF_IMAGE_WITH_PE
+@@ -434,8 +446,8 @@
+                                        unless user specifies one\n"));
+   fprintf (file, _("  --disable-auto-image-base          Do not auto-choose image base. (default)\n"));
+   fprintf (file, _("  --dll-search-prefix=<string>       When linking dynamically to a dll without\n\
+-                                       an importlib, use <string><basename>.dll\n\
+-                                       in preference to lib<basename>.dll \n"));
++                                       an importlib, use <string><basename>"PE_DSO_SUFFIX"\n\
++                                       in preference to lib<basename>"PE_DSO_SUFFIX" \n"));
+   fprintf (file, _("  --enable-auto-import               Do sophisticated linking of _sym to\n\
+                                        __imp_sym for DATA references\n"));
+   fprintf (file, _("  --disable-auto-import              Do not auto-import DATA items from DLLs\n"));
+@@ -1635,7 +1647,7 @@
+ 		       extension, and use that for the remainder of the
+ 		       comparisons.  */
+ 		    pnt = strrchr (is3->the_bfd->filename, '.');
+-		    if (pnt != NULL && filename_cmp (pnt, ".dll") == 0)
++		    if (pnt != NULL && filename_cmp (pnt, PE_DSO_SUFFIX) == 0)
+ 		      break;
+ 		  }
+ 
+@@ -1670,7 +1682,7 @@
+ 	       then leave the filename alone.  */
+ 	    pnt = strrchr (is->the_bfd->filename, '.');
+ 
+-	    if (is_ms_arch && (filename_cmp (pnt, ".dll") == 0))
++	    if (is_ms_arch && (filename_cmp (pnt, PE_DSO_SUFFIX) == 0))
+ 	      {
+ 		int idata2 = 0, reloc_count=0;
+ 		asection *sec;
+@@ -2062,10 +2074,14 @@
+     }
+   libname_fmt [] =
+     {
++      /* optionally support ldso-specific import libraries */
++      #ifdef PE_DSOLIB_SUFFIX
++      { "lib%s"PE_DSOLIB_SUFFIX, FALSE },
++      #endif
+       /* Preferred explicit import library for dll's.  */
+-      { "lib%s.dll.a", FALSE },
++      { "lib%s"PE_IMPLIB_SUFFIX, FALSE },
+       /* Alternate explicit import library for dll's.  */
+-      { "%s.dll.a", FALSE },
++      { "%s"PE_IMPLIB_SUFFIX, FALSE },
+       /* "libfoo.a" could be either an import lib or a static lib.
+           For backwards compatibility, libfoo.a needs to precede
+           libfoo.dll and foo.dll in the search.  */
+@@ -2074,10 +2090,10 @@
+       { "%s.lib", FALSE },
+ #ifdef DLL_SUPPORT
+       /* Try "<prefix>foo.dll" (preferred dll name, if specified).  */
+-      {	"%s%s.dll", TRUE },
++      {	"%s%s"PE_DSO_SUFFIX, TRUE },
+ #endif
+       /* Try "libfoo.dll" (default preferred dll name).  */
+-      {	"lib%s.dll", FALSE },
++      {	"lib%s"PE_DSO_SUFFIX, FALSE },
+       /* Finally try 'native' dll name "foo.dll".  */
+       {  "%s.dll", FALSE },
+       /* Note: If adding more formats to this table, make sure to check to
