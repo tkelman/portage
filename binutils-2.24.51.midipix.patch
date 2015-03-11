@@ -1,0 +1,14 @@
+diff -ru --new-file a/bfd/midipix.h b/bfd/midipix.h
+--- a/bfd/midipix.h	1969-12-31 19:00:00.000000000 -0500
++++ b/bfd/midipix.h	2015-03-11 17:23:18.492453732 -0400
+@@ -0,0 +1,10 @@
++#ifndef MIDIPIX_H
++#define MIDIPIX_H
++
++#define PE_TARGET_MIDIPIX
++
++#define PE_DSO_SUFFIX		".so"
++#define PE_DSOLIB_SUFFIX	".dso.a"
++#define PE_IMPLIB_SUFFIX	".lib.a"
++
++#endif
