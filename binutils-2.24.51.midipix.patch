@@ -12,13 +12,15 @@ diff -ru --new-file a/bfd/midipix.h b/bfd/midipix.h
 +#define PE_IMPLIB_SUFFIX	".lib.a"
 +
 +#endif
-diff -ru --new-file a/ld/configure b/ld/configure
 --- a/ld/configure	2014-07-03 01:37:48.000000000 -0400
-+++ b/ld/configure	2015-03-11 18:20:47.712564107 -0400
-@@ -19773,3 +19773,19 @@
++++ b/ld/configure	2015-03-11 20:01:08.888756786 -0400
+@@ -19773,3 +19773,22 @@
  $as_echo "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
  fi
  
++sed -i -e 's/@pe_crt_section@/'$PE_CRT_SECTION'/g' Makefile
++sed -i -e 's/@pe_cygwin_fork_support@/'$PE_CYGWIN_FORK_SUPPORT'/g' Makefile
++
 +#PE custom import library support
 +if [ -f peimplib.h ]; then
 +	echo 'build directory is not clean (peimplib.h already exists)'
@@ -197,3 +199,158 @@ diff -ru --new-file a/ld/emultempl/pep.em b/ld/emultempl/pep.em
        /* Finally try 'native' dll name "foo.dll".  */
        {  "%s.dll", FALSE },
        /* Note: If adding more formats to this table, make sure to check to
+diff -ru --new-file a/ld/configure.tgt b/ld/configure.tgt
+--- a/ld/configure.tgt	2014-07-03 01:37:48.000000000 -0400
++++ b/ld/configure.tgt	2015-03-11 20:09:20.564772519 -0400
+@@ -319,6 +319,10 @@
+ 			test "$targ" != "$host" && LIB_PATH='${tooldir}/lib/w32api' ;;
+ i[3-7]86-*-mingw32*)	targ_emul=i386pe ;
+ 			targ_extra_ofiles="deffilep.o pe-dll.o" ;;
++i[3-7]86-*-midipix*)	targ_emul=i386pe ;
++			targ_extra_ofiles="deffilep.o pe-dll.o" ;
++			PE_CRT_SECTION=no ;
++			PE_CYGWIN_FORK_SUPPORT=no ;;
+ x86_64-*-pe | x86_64-*-pep) targ_emul=i386pep ;
+ 			targ_extra_emuls=i386pe ;
+ 			targ_extra_ofiles="deffilep.o pep-dll.o pe-dll.o" ;;
+@@ -329,7 +333,12 @@
+ x86_64-*-mingw*)	targ_emul=i386pep ;
+ 			targ_extra_emuls=i386pe
+ 			targ_extra_ofiles="deffilep.o pep-dll.o pe-dll.o" ;;
+-i[3-7]86-*-interix*)	targ_emul=i386pe_posix;
++x86_64-*-midipix*)	targ_emul=i386pep ;
++			targ_extra_emuls=i386pe ;
++			targ_extra_ofiles="deffilep.o pep-dll.o pe-dll.o" ;
++			PE_CRT_SECTION=no ;
++			PE_CYGWIN_FORK_SUPPORT=no ;;
++i[3-7]86-*-interix*)	targ_emul=i386pe_posix ;
+  			targ_extra_ofiles="deffilep.o pe-dll.o" ;;
+ i[3-7]86-*-beospe*)	targ_emul=i386beos ;;
+ i[3-7]86-*-beos*)	targ_emul=elf_i386_be ;;
+diff -ru --new-file a/ld/Makefile.in b/ld/Makefile.in
+--- a/ld/Makefile.in	2014-07-03 01:37:48.000000000 -0400
++++ b/ld/Makefile.in	2015-03-11 20:09:38.972773108 -0400
+@@ -54,6 +54,8 @@
+ host_triplet = @host@
+ target_triplet = @target@
+ bin_PROGRAMS = ld-new$(EXEEXT)
++PE_CRT_SECTION = @pe_crt_section@
++PE_CYGWIN_FORK_SUPPORT = @pe_cygwin_fork_support@
+ 
+ # Automake 1.9 will only build info files in the objdir if they are
+ # mentioned in DISTCLEANFILES.  It doesn't have to be unconditional,
+@@ -831,7 +833,7 @@
+ POTFILES = $(CFILES) $(HFILES) $(EMULATION_FILES)
+ 
+ # These all start with e so 'make clean' can find them.
+-GENSCRIPTS = LIB_PATH='${LIB_PATH}' $(SHELL) $(srcdir)/genscripts.sh "${srcdir}" "${libdir}" "${prefix}" "${exec_prefix}" @host@ @target@ @target_alias@ "@EMULATION_LIBPATH@" "@NATIVE_LIB_DIRS@" @use_sysroot@ @enable_initfini_array@
++GENSCRIPTS = PE_CRT_SECTION='${PE_CRT_SECTION}' PE_CYGWIN_FORK_SUPPORT='${PE_CYGWIN_FORK_SUPPORT}' LIB_PATH='${LIB_PATH}' $(SHELL) $(srcdir)/genscripts.sh "${srcdir}" "${libdir}" "${prefix}" "${exec_prefix}" @host@ @target@ @target_alias@ "@EMULATION_LIBPATH@" "@NATIVE_LIB_DIRS@" @use_sysroot@ @enable_initfini_array@
+ GEN_DEPENDS = $(srcdir)/genscripts.sh stringify.sed
+ ELF_DEPS = $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/elf-generic.em $(srcdir)/scripttempl/DWARF.sc
+ ELF_GEN_DEPS = $(srcdir)/emultempl/generic.em $(srcdir)/emultempl/elf-generic.em $(srcdir)/emultempl/genelf.em $(srcdir)/scripttempl/DWARF.sc
+diff -ru --new-file a/ld/scripttempl/pep.sc b/ld/scripttempl/pep.sc
+--- a/ld/scripttempl/pep.sc	2014-07-03 01:37:48.000000000 -0400
++++ b/ld/scripttempl/pep.sc	2015-03-11 20:10:05.324773952 -0400
+@@ -92,12 +92,17 @@
+     ${RELOCATING+ *(.gcc_except_table)}
+   }
+ 
++EOF
++if [ x"$PE_CYGWIN_FORK_SUPPORT" != xno ]; then cat << EOF
+   /* The Cygwin32 library uses a section to avoid copying certain data
+      on fork.  This used to be named ".data$nocopy".  The linker used
+      to include this between __data_start__ and __data_end__, but that
+      breaks building the cygwin32 dll.  Instead, we name the section
+      ".data_cygwin_nocopy" and explicitly include it after __data_end__. */
+ 
++EOF
++fi
++cat << EOF
+   .data ${RELOCATING+BLOCK(__section_alignment__)} :
+   {
+     ${RELOCATING+__data_start__ = . ;}
+@@ -106,7 +111,12 @@
+     ${R_DATA}
+     *(.jcr)
+     ${RELOCATING+__data_end__ = . ;}
++EOF
++if [ x"$PE_CYGWIN_FORK_SUPPORT" != xno ]; then cat << EOF
+     ${RELOCATING+*(.data_cygwin_nocopy)}
++EOF
++fi
++cat << EOF
+   }
+ 
+   .rdata ${RELOCATING+BLOCK(__section_alignment__)} :
+@@ -170,6 +180,8 @@
+     ${RELOCATING+__IAT_end__ = .;}
+     ${R_IDATA67}
+   }
++EOF
++if [ x"$PE_CRT_SECTION" != xno ]; then cat << EOF
+   .CRT ${RELOCATING+BLOCK(__section_alignment__)} :
+   { 					
+     ${RELOCATING+___crt_xc_start__ = . ;}
+@@ -188,6 +200,9 @@
+     ${R_CRT_XT}
+     ${RELOCATING+___crt_xt_end__ = . ;}
+   }
++EOF
++fi
++cat << EOF
+ 
+   /* Windows TLS expects .tls\$AAA to be at the start and .tls\$ZZZ to be
+      at the end of the .tls section.  This is important because _tls_start MUST
+diff -ru --new-file a/ld/scripttempl/pe.sc b/ld/scripttempl/pe.sc
+--- a/ld/scripttempl/pe.sc	2014-07-03 01:37:48.000000000 -0400
++++ b/ld/scripttempl/pe.sc	2015-03-11 20:10:10.036774102 -0400
+@@ -92,12 +92,17 @@
+     ${RELOCATING+ *(.gcc_except_table)}
+   }
+ 
++EOF
++if [ x"$PE_CYGWIN_FORK_SUPPORT" != xno ]; then cat << EOF
+   /* The Cygwin32 library uses a section to avoid copying certain data
+      on fork.  This used to be named ".data$nocopy".  The linker used
+      to include this between __data_start__ and __data_end__, but that
+      breaks building the cygwin32 dll.  Instead, we name the section
+      ".data_cygwin_nocopy" and explicitly include it after __data_end__. */
+ 
++EOF
++fi
++cat << EOF
+   .data ${RELOCATING+BLOCK(__section_alignment__)} :
+   {
+     ${RELOCATING+__data_start__ = . ;}
+@@ -106,7 +111,12 @@
+     ${R_DATA}
+     *(.jcr)
+     ${RELOCATING+__data_end__ = . ;}
++EOF
++if [ x"$PE_CYGWIN_FORK_SUPPORT" != xno ]; then cat << EOF
+     ${RELOCATING+*(.data_cygwin_nocopy)}
++EOF
++fi
++cat << EOF
+   }
+ 
+   .rdata ${RELOCATING+BLOCK(__section_alignment__)} :
+@@ -165,6 +175,8 @@
+     ${RELOCATING+__IAT_end__ = .;}
+     ${R_IDATA67}
+   }
++EOF
++if [ x"$PE_CRT_SECTION" != xno ]; then cat << EOF
+   .CRT ${RELOCATING+BLOCK(__section_alignment__)} :
+   { 					
+     ${RELOCATING+___crt_xc_start__ = . ;}
+@@ -183,6 +195,9 @@
+     ${R_CRT_XT}
+     ${RELOCATING+___crt_xt_end__ = . ;}
+   }
++EOF
++fi
++cat << EOF
+ 
+   /* Windows TLS expects .tls\$AAA to be at the start and .tls\$ZZZ to be
+      at the end of section.  This is important because _tls_start MUST
