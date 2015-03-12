@@ -388,3 +388,93 @@ diff -ru --new-file a/ld/pe-dll.c b/ld/pe-dll.c
 +  #endif
    { NULL, 0 }
  };
+
+diff -ru --new-file a/bfd/config.bfd b/bfd/config.bfd
+--- a/bfd/config.bfd	2014-07-03 01:37:20.000000000 -0400
++++ b/bfd/config.bfd	2015-02-14 11:27:08.199179775 -0500
+@@ -679,7 +679,7 @@
+     targ_archs="$targ_archs bfd_arm_arch"
+     want64=true
+     ;;
+-  x86_64-*-mingw* | x86_64-*-pe | x86_64-*-pep | x86_64-*-cygwin)
++  x86_64-*-mingw* | x86_64-*-pe | x86_64-*-pep | x86_64-*-cygwin | x86_64-*-midipix*)
+     targ_defvec=x86_64_pe_vec
+     targ_selvecs="x86_64_pe_vec x86_64_pei_vec x86_64_pe_be_vec x86_64_elf64_vec l1om_elf64_vec k1om_elf64_vec i386_pe_vec i386_pei_vec i386_elf32_vec"
+     want64=true
+@@ -731,7 +731,7 @@
+     targ_defvec=i386_elf32_vec
+     targ_selvecs=i386_coff_vec
+     ;;
+-  i[3-7]86-*-mingw32* | i[3-7]86-*-cygwin* | i[3-7]86-*-winnt | i[3-7]86-*-pe)
++  i[3-7]86-*-mingw32* | i[3-7]86-*-cygwin* | i[3-7]86-*-winnt | i[3-7]86-*-pe | i[3-7]86-*-midipix*)
+     targ_defvec=i386_pe_vec
+     targ_selvecs="i386_pe_vec i386_pei_vec i386_elf32_vec"
+     targ_underscore=yes
+diff -ru --new-file a/binutils/configure b/binutils/configure
+--- a/binutils/configure	2014-07-03 01:37:22.000000000 -0400
++++ b/binutils/configure	2015-02-14 20:13:02.552189518 -0500
+@@ -14015,7 +14015,7 @@
+ 	  BUILD_WINDRES='$(WINDRES_PROG)$(EXEEXT)'
+ 	  BUILD_WINDMC='$(WINDMC_PROG)$(EXEEXT)'
+ 	  ;;
+-	x86_64-*-mingw* | x86_64-*-cygwin*)
++	x86_64-*-mingw* | x86_64-*-midipix* | x86_64-*-cygwin*)
+   	  BUILD_DLLTOOL='$(DLLTOOL_PROG)$(EXEEXT)'
+ 	  if test -z "$DLLTOOL_DEFAULT"; then
+ 	    DLLTOOL_DEFAULT="-DDLLTOOL_DEFAULT_MX86_64"
+diff -ru --new-file a/config.sub b/config.sub
+--- a/config.sub	2014-07-03 01:37:23.000000000 -0400
++++ b/config.sub	2015-02-14 11:27:08.083179771 -0500
+@@ -1370,7 +1370,7 @@
+ 	      | -ptx* | -coff* | -ecoff* | -winnt* | -domain* | -vsta* \
+ 	      | -udi* | -eabi* | -lites* | -ieee* | -go32* | -aux* \
+ 	      | -chorusos* | -chorusrdb* | -cegcc* \
+-	      | -cygwin* | -msys* | -pe* | -psos* | -moss* | -proelf* | -rtems* \
++	      | -cygwin* | -msys* | -pe* | -psos* | -moss* | -proelf* | -rtems* | -midipix* \
+ 	      | -mingw32* | -mingw64* | -linux-gnu* | -linux-android* \
+ 	      | -linux-newlib* | -linux-musl* | -linux-uclibc* \
+ 	      | -uxpv* | -beos* | -mpeix* | -udk* \
+diff -ru --new-file a/configure b/configure
+--- a/configure	2014-07-03 01:37:23.000000000 -0400
++++ b/configure	2015-03-11 17:07:15.820422926 -0400
+@@ -3428,6 +3428,9 @@
+   x86_64-*-mingw*)
+     noconfigdirs="$noconfigdirs ${libgcj}"
+     ;;
++  *-midipix*)
++    noconfigdirs="$noconfigdirs ${libgcj}"
++    ;;
+   mmix-*-*)
+     noconfigdirs="$noconfigdirs target-libffi target-boehm-gc"
+     ;;
+@@ -3549,6 +3552,9 @@
+   *-*-mingw*)
+     noconfigdirs="$noconfigdirs target-newlib target-libgloss"
+     ;;
++  *-*-midipix*)
++    noconfigdirs="$noconfigdirs target-newlib target-libgloss"
++    ;;
+   *-*-netbsd*)
+     noconfigdirs="$noconfigdirs target-newlib target-libgloss"
+     ;;
+@@ -6257,7 +6263,7 @@
+ 
+ target_elf=no
+ case $target in
+-  *-darwin* | *-aix* | *-cygwin* | *-mingw* | *-aout* | *-*coff* | \
++  *-darwin* | *-aix* | *-cygwin* | *-mingw* | *-midipix* | *-aout* | *-*coff* | \
+   *-msdosdjgpp* | *-vms* | *-wince* | *-*-pe* | \
+   alpha*-dec-osf* | *-interix* | hppa[12]*-*-hpux*)
+     target_elf=no
+diff -ru --new-file a/gas/configure.tgt b/gas/configure.tgt
+--- a/gas/configure.tgt	2014-07-03 01:37:25.000000000 -0400
++++ b/gas/configure.tgt	2015-02-14 11:27:08.223179776 -0500
+@@ -262,7 +262,7 @@
+      i*)				fmt=coff em=pe ;;
+    esac ;;
+   i386-*-interix*)			fmt=coff em=interix ;;
+-  i386-*-mingw*)
++  i386-*-mingw* | i386-*-midipix*)
+     case ${cpu} in
+       x86_64*)				fmt=coff em=pep ;;
+       i*)				fmt=coff em=pe ;;
