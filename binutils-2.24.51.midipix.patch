@@ -354,3 +354,15 @@ diff -ru --new-file a/ld/scripttempl/pe.sc b/ld/scripttempl/pe.sc
  
    /* Windows TLS expects .tls\$AAA to be at the start and .tls\$ZZZ to be
       at the end of section.  This is important because _tls_start MUST
+diff -ru --new-file a/binutils/winduni.c b/binutils/winduni.c
+--- a/binutils/winduni.c	2014-07-03 01:37:23.000000000 -0400
++++ b/binutils/winduni.c	2015-02-14 11:18:32.987163288 -0500
+@@ -57,7 +57,7 @@
+ /* Codepages mapped.  */
+ static local_iconv_map codepages[] =
+ {
+-  { 0, "MS-ANSI" },
++  { 0, "cp1252" },
+   { 1, "WINDOWS-1252" },
+   { 437, "MS-ANSI" },
+   { 737, "MS-GREEK" },
