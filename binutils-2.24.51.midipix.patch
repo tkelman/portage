@@ -366,3 +366,25 @@ diff -ru --new-file a/binutils/winduni.c b/binutils/winduni.c
    { 1, "WINDOWS-1252" },
    { 437, "MS-ANSI" },
    { 737, "MS-GREEK" },
+diff -ru --new-file a/ld/pe-dll.c b/ld/pe-dll.c
+--- a/ld/pe-dll.c	2014-07-03 01:37:48.000000000 -0400
++++ b/ld/pe-dll.c	2015-02-28 09:36:05.942808235 -0500
+@@ -40,6 +40,7 @@
+ #include "coff/internal.h"
+ #include "../bfd/libcoff.h"
+ #include "deffile.h"
++#include "peimplib.h"
+ 
+ #ifdef pe_use_x86_64
+ 
+@@ -234,7 +235,11 @@
+   { STRING_COMMA_LEN ("impure_ptr") },
+   { STRING_COMMA_LEN ("_impure_ptr") },
+   { STRING_COMMA_LEN ("_fmode") },
++  #ifdef PE_TARGET_MIDIPIX
++  /* (default) excluded symbols are defined by the caller (specs, etc.) */
++  #else
+   { STRING_COMMA_LEN ("environ") },
++  #endif
+   { NULL, 0 }
+ };
