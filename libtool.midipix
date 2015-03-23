@@ -2842,16 +2842,18 @@ func_mode_install ()
 			# this only affects symbols prefixed by __emutls_[vt], which presumably
 			# are only marked for export due to --export-all-symbols being the default.
 
-			grep -n 'IMPORTS' "$implib_ver_def_name" || imp_lines='all'
+			grep -vE '"$excluded_symbols"' "$implib_ver_def_name" | grep -v '\.' > "$implib_def_name"
+			imp_lines=`grep -n 'IMPORTS' "$implib_def_name"`
 
-			if [ "$imp_lines"x = allx ]; then
-				cp "$implib_ver_def_name" "$implib_exp_def_name"
+			if [ x"$imp_lines" = x ]; then
+				imp_lines=`wc -l "$implib_def_name"`
+				imp_lines=`echo "$imp_lines" | cut -d' ' -f1`
 			else
-				grep -vE '"$excluded_symbols"' "$implib_ver_def_name" | grep -v '\.' > "$implib_def_name"
-				imp_lines=`grep -n 'IMPORTS' "$implib_def_name" | cut -d':' -f1`
-				imp_lines=`expr $imp_lines - 1`
-				head -n$imp_lines "$implib_def_name" > "$implib_exp_def_name"
+				imp_lines=`echo "$imp_lines" | cut -d':' -f1`
+				imp_lines=`expr $imp_lines - 1`;
 			fi
+
+			head -n$imp_lines "$implib_def_name" > "$implib_exp_def_name"
 
 			"$host"-dlltool -d "$implib_exp_def_name" -D "$dso_name" -l "$implib_name"
 			cp -t "$destdir" "$implib_name"
