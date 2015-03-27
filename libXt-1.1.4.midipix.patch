@@ -1,0 +1,68 @@
+diff --git a/config.sub b/config.sub
+index 8b612ab..a3721a7 100755
+--- a/config.sub
++++ b/config.sub
+@@ -789,6 +789,9 @@ case $basic_machine in
+ 	microblaze*)
+ 		basic_machine=microblaze-xilinx
+ 		;;
++	midipix)
++		os=-midipix
++		;;
+ 	mingw64)
+ 		basic_machine=x86_64-pc
+ 		os=-mingw64
+@@ -1365,7 +1368,7 @@ case $os in
+ 	      | -udi* | -eabi* | -lites* | -ieee* | -go32* | -aux* \
+ 	      | -chorusos* | -chorusrdb* | -cegcc* \
+ 	      | -cygwin* | -msys* | -pe* | -psos* | -moss* | -proelf* | -rtems* \
+-	      | -mingw32* | -mingw64* | -linux-gnu* | -linux-android* \
++	      | -midipix* | -mingw32* | -mingw64* | -linux-gnu* | -linux-android* \
+ 	      | -linux-newlib* | -linux-musl* | -linux-uclibc* \
+ 	      | -uxpv* | -beos* | -mpeix* | -udk* \
+ 	      | -interix* | -uwin* | -mks* | -rhapsody* | -darwin* | -opened* \
+diff --git a/configure b/configure
+index 188efd7..503290c 100755
+--- a/configure
++++ b/configure
+@@ -21599,3 +21599,14 @@ if test -n "$ac_unrecognized_opts" && test "$enable_option_checking" != no; then
+ $as_echo "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
+ fi
+ 
++# a transitional workaround...
++case $host_os in
++		midipix*)
++			cp $ac_confdir/libtool.midipix libtool || exit 2
++
++			sed -i	-e 's/@cbb_host_os@/'$host'/g' \
++				-e 's/@cbb_build_alias@/'$build_alias'/g' \
++				-e 's/@cbb_build_os@/'$build_os'/g' \
++				-e 's/@cbb_build@/'$build'/g' libtool || exit 2
++			;;
++esac
+diff --git a/src/Makefile.am b/src/Makefile.am
+index a466ae5..d3306e3 100644
+--- a/src/Makefile.am
++++ b/src/Makefile.am
+@@ -97,7 +97,7 @@ all-local: $(BUILT_FILES)
+ $(BUILT_HEADER): $(BUILT_SOURCE)
+ 
+ $(BUILT_SOURCE):
+-	$(AM_V_GEN)$(top_builddir)/util/makestrs -i $(top_srcdir) $(STRINGSABIOPTIONS) < $(STRING_LIST) > StringDefs.c
++	$(AM_V_GEN)$(top_builddir)/util/makestrs$(EXEEXT) -i $(top_srcdir) $(STRINGSABIOPTIONS) < $(STRING_LIST) > StringDefs.c
+ 	$(AM_V_at)mkdir -p $(top_builddir)/src
+ 	$(AM_V_at)mkdir -p $(top_builddir)/include/X11
+ 	$(AM_V_at)cp StringDefs.h $(top_builddir)/include/X11
+diff --git a/src/Makefile.in b/src/Makefile.in
+index 3f53285..604a8ae 100644
+--- a/src/Makefile.in
++++ b/src/Makefile.in
+@@ -825,7 +825,7 @@ all-local: $(BUILT_FILES)
+ $(BUILT_HEADER): $(BUILT_SOURCE)
+ 
+ $(BUILT_SOURCE):
+-	$(AM_V_GEN)$(top_builddir)/util/makestrs -i $(top_srcdir) $(STRINGSABIOPTIONS) < $(STRING_LIST) > StringDefs.c
++	$(AM_V_GEN)$(top_builddir)/util/makestrs$(EXEEXT) -i $(top_srcdir) $(STRINGSABIOPTIONS) < $(STRING_LIST) > StringDefs.c
+ 	$(AM_V_at)mkdir -p $(top_builddir)/src
+ 	$(AM_V_at)mkdir -p $(top_builddir)/include/X11
+ 	$(AM_V_at)cp StringDefs.h $(top_builddir)/include/X11

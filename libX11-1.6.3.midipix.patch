@@ -1,0 +1,69 @@
+diff --git a/config.sub b/config.sub
+index 7ffe373..7370af8 100755
+--- a/config.sub
++++ b/config.sub
+@@ -804,6 +804,9 @@ case $basic_machine in
+ 	microblaze*)
+ 		basic_machine=microblaze-xilinx
+ 		;;
++	midipix)
++		os=-midipix
++		;;
+ 	mingw64)
+ 		basic_machine=x86_64-pc
+ 		os=-mingw64
+@@ -1384,7 +1387,7 @@ case $os in
+ 	      | -udi* | -eabi* | -lites* | -ieee* | -go32* | -aux* \
+ 	      | -chorusos* | -chorusrdb* | -cegcc* \
+ 	      | -cygwin* | -msys* | -pe* | -psos* | -moss* | -proelf* | -rtems* \
+-	      | -mingw32* | -mingw64* | -linux-gnu* | -linux-android* \
++	      | -midipix* | -mingw32* | -mingw64* | -linux-gnu* | -linux-android* \
+ 	      | -linux-newlib* | -linux-musl* | -linux-uclibc* \
+ 	      | -uxpv* | -beos* | -mpeix* | -udk* | -moxiebox* \
+ 	      | -interix* | -uwin* | -mks* | -rhapsody* | -darwin* | -opened* \
+diff --git a/configure b/configure
+index 2499263..339f04b 100755
+--- a/configure
++++ b/configure
+@@ -23621,3 +23621,15 @@ echo " XLOCALEDIR environment variable support: "$ENABLE_XLOCALEDIR
+ echo " Compose table cache enabled:             "$COMPOSECACHE
+ echo " Functional specs building enabled:       "$build_specs
+ echo ""
++
++# a transitional workaround...
++case $host_os in
++		midipix*)
++			cp $ac_confdir/libtool.midipix libtool || exit 2
++
++			sed -i	-e 's/@cbb_host_os@/'$host'/g' \
++				-e 's/@cbb_build_alias@/'$build_alias'/g' \
++				-e 's/@cbb_build_os@/'$build_os'/g' \
++				-e 's/@cbb_build@/'$build'/g' libtool || exit 2
++			;;
++esac
+diff --git a/src/Makefile.am b/src/Makefile.am
+index ceb8366..c12a97a 100644
+--- a/src/Makefile.am
++++ b/src/Makefile.am
+@@ -413,7 +413,7 @@ endif MAKE_LINT_LIB
+ KEYSYMDEFS=@KEYSYMDEFS@
+ 
+ ks_tables.h: $(KEYSYMDEFS) $(top_builddir)/src/util/makekeys$(EXEEXT)
+-	$(top_builddir)/src/util/makekeys $(KEYSYMDEFS) > ks_tables_h
++	$(top_builddir)/src/util/makekeys$(EXEEXT) $(KEYSYMDEFS) > ks_tables_h
+ 	mv ks_tables_h $@
+ 
+ $(top_builddir)/src/util/makekeys$(EXEEXT): force
+diff --git a/src/Makefile.in b/src/Makefile.in
+index 1192d6a..83ec708 100644
+--- a/src/Makefile.in
++++ b/src/Makefile.in
+@@ -1415,7 +1415,7 @@ preprocess: $(patsubst %.c,%.ii,$(libX11_la_SOURCES))
+ @MAKE_LINT_LIB_TRUE@	$(AM_V_GEN)$(LINT) -y -oX11 -x $(ALL_LINT_FLAGS) $(lintlib_src)
+ 
+ ks_tables.h: $(KEYSYMDEFS) $(top_builddir)/src/util/makekeys$(EXEEXT)
+-	$(top_builddir)/src/util/makekeys $(KEYSYMDEFS) > ks_tables_h
++	$(top_builddir)/src/util/makekeys$(EXEEXT) $(KEYSYMDEFS) > ks_tables_h
+ 	mv ks_tables_h $@
+ 
+ $(top_builddir)/src/util/makekeys$(EXEEXT): force
