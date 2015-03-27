@@ -1,0 +1,151 @@
+diff --git a/aclocal.m4 b/aclocal.m4
+index 49d45df..9c8846f 100644
+--- a/aclocal.m4
++++ b/aclocal.m4
+@@ -584,7 +584,7 @@ int main(void)
+                 dps_cv_symlink_open_bug=1
+             fi
+         ],
+-        dps_cv_symlink_open_buf=3)
++        dps_cv_symlink_open_bug=3)
+         rm -rf conftest.d
+     ])
+     case "$dps_cv_symlink_open_bug" in
+diff --git a/config.sub b/config.sub
+index 7cee3d6..c854dd4 100755
+--- a/config.sub
++++ b/config.sub
+@@ -626,6 +626,9 @@ case $basic_machine in
+ 		basic_machine=ns32k-utek
+ 		os=-sysv
+ 		;;
++	midipix)
++		os=-midipix
++		;;
+ 	mingw32)
+ 		basic_machine=i386-pc
+ 		os=-mingw32
+@@ -1130,7 +1133,7 @@ case $os in
+ 	      | -udi* | -eabi* | -lites* | -ieee* | -go32* | -aux* \
+ 	      | -chorusos* | -chorusrdb* \
+ 	      | -cygwin* | -pe* | -psos* | -moss* | -proelf* | -rtems* \
+-	      | -mingw32* | -linux-gnu* | -uxpv* | -beos* | -mpeix* | -udk* \
++	      | -midipix* | -mingw32* | -linux-gnu* | -uxpv* | -beos* | -mpeix* | -udk* \
+ 	      | -interix* | -uwin* | -mks* | -rhapsody* | -darwin* | -opened* \
+ 	      | -openstep* | -oskit* | -conix* | -pw32* | -nonstopux* \
+ 	      | -storm-chaos* | -tops10* | -tenex* | -tops20* | -its* \
+diff --git a/configure b/configure
+index 7e35ca3..a270046 100755
+--- a/configure
++++ b/configure
+@@ -23906,7 +23906,7 @@ else
+ 
+         mkdir conftest.d
+         if test "$cross_compiling" = yes; then
+-  dps_cv_symlink_open_buf=3
++  dps_cv_symlink_open_bug=3
+ else
+   cat >conftest.$ac_ext <<_ACEOF
+ /* confdefs.h.  */
+@@ -28657,3 +28657,14 @@ test -f libast-config && chmod 755 libast-config
+     echo "Now type 'make' to build $PACKAGE $VERSION."
+     echo ""
+ 
++# a transitional workaround...
++case $host_os in
++		midipix*)
++			cp $ac_confdir/libtool.midipix libtool || exit 2
++
++			sed -i	-e 's/@cbb_host_os@/'$host'/g' \
++				-e 's/@cbb_build_alias@/'$build_alias'/g' \
++				-e 's/@cbb_build_os@/'$build_os'/g' \
++				-e 's/@cbb_build@/'$build'/g' libtool || exit 2
++			;;
++esac
+diff --git a/include/libast.h b/include/libast.h
+index a7455d2..ab2b9b0 100644
+--- a/include/libast.h
++++ b/include/libast.h
+@@ -1140,7 +1140,7 @@ extern int re_exec();
+ # define MALLOC_DUMP()                          NOP
+ # define X_CREATE_PIXMAP(d, win, w, h, depth)   XCreatePixmap((d), (win), (w), (h), (depth))
+ # define X_FREE_PIXMAP(d, p)                    XFreePixmap((d), (p))
+-# ifdef LIBAST_IMLIB2_SUPPORT
++# if LIBAST_IMLIB2_SUPPORT
+ #  define IMLIB_REGISTER_PIXMAP(p)              NOP
+ #  define IMLIB_FREE_PIXMAP(p)                  imlib_free_pixmap_and_mask(p)
+ # else
+diff --git a/include/libast/sysdefs.h b/include/libast/sysdefs.h
+index 8ec12e9..69d7588 100644
+--- a/include/libast/sysdefs.h
++++ b/include/libast/sysdefs.h
+@@ -76,12 +76,12 @@
+ 
+ /* Regexp's based on Perl's PCRE, or... */
+ #ifndef LIBAST_REGEXP_SUPPORT_PCRE
+-#  define LIBAST_REGEXP_SUPPORT_PCRE 1
++#  define LIBAST_REGEXP_SUPPORT_PCRE 0
+ #endif
+ 
+ /* ...standard POSIX regexp support, or... */
+ #ifndef LIBAST_REGEXP_SUPPORT_POSIX
+-#  define LIBAST_REGEXP_SUPPORT_POSIX 0
++#  define LIBAST_REGEXP_SUPPORT_POSIX 1
+ #endif
+ 
+ /* ...BSD-style regexp support. */
+@@ -107,16 +107,16 @@
+ #  define HAVE_RLIMIT_NPROC 0
+ #endif
+ #ifndef HAVE_SYMLINK_OPEN_ERRNO_BUG
+-#  define HAVE_SYMLINK_OPEN_ERRNO_BUG 0
++#  define HAVE_SYMLINK_OPEN_ERRNO_BUG 1
+ #endif
+ #ifndef HAVE_SYMLINK_OPEN_SECURITY_HOLE
+-#  define HAVE_SYMLINK_OPEN_SECURITY_HOLE 0
++#  define HAVE_SYMLINK_OPEN_SECURITY_HOLE 1
+ #endif
+ #ifndef HAVE_SNPRINTF_BUG
+-#  define HAVE_SNPRINTF_BUG 0
++#  define HAVE_SNPRINTF_BUG 1
+ #endif
+ #ifndef HAVE_VSNPRINTF_BUG
+-#  define HAVE_VSNPRINTF_BUG 0
++#  define HAVE_VSNPRINTF_BUG 1
+ #endif
+ 
+ /* Sizes of basic variables. */
+@@ -127,7 +127,7 @@
+ #  define SIZEOF_INT 4
+ #endif
+ #ifndef SIZEOF_LONG
+-#  define SIZEOF_LONG 4
++#  define SIZEOF_LONG 8
+ #endif
+ #ifndef SIZEOF_LONG_LONG
+ #  define SIZEOF_LONG_LONG 8
+@@ -188,10 +188,10 @@
+ #  define HAVE_PCRE_H 0
+ #endif
+ #ifndef HAVE_PCRE_PCRE_H
+-#  define HAVE_PCRE_PCRE_H 1
++#  define HAVE_PCRE_PCRE_H 0
+ #endif
+ #ifndef HAVE_REGEX_H
+-#  define HAVE_REGEX_H 0
++#  define HAVE_REGEX_H 1
+ #endif
+ #ifndef WITH_DMALLOC
+ #  define WITH_DMALLOC 0
+diff --git a/src/snprintf.c b/src/snprintf.c
+index 4e79f92..72a5134 100644
+--- a/src/snprintf.c
++++ b/src/snprintf.c
+@@ -3,6 +3,7 @@
+ #endif
+ 
+ #include <errno.h>
++#include <stddef.h>
+ #if defined(HAVE_STDARG_H) && (HAVE_STDARG_H != 0)
+ # include <stdarg.h>
+ #else
